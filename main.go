@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"encoding/xml"
 	"fmt"
 	"io/ioutil"
@@ -32,15 +33,14 @@ type Courses struct {
 	Cours   []Course `xml:"course"`
 }
 
-type iniFile struct {
-	Section string
-	Data    map[string]int
+type Data struct {
+	Course string
+	Mark   int
 }
 
 type jsonFile struct {
-	student string
-	сourse  string
-	mark    int
+	Student string
+	data    []Data
 }
 
 func main() {
@@ -57,68 +57,45 @@ func main() {
 		Logs("В папке \"" + pathToDirectory + "\" не найдены файлы xml")
 	} else {
 
-		var iniFiles []string
+		iniFiles := CreateListFile("ini", listFiles)
 
-		for _, file := range listFiles {
-			iniFileName := ConvertXmlToIni(file)
-			if iniFileName != "" {
-				iniFiles = append(iniFiles, iniFileName)
-			}
-		}
-
-		var jsonFiles []string
-
-		for _, file := range iniFiles {
-			jsonFileName := ConvertIniToJson(file)
-			if jsonFileName != "" {
-				jsonFiles = append(jsonFiles, jsonFileName)
-			}
-		}
+		jsonFiles := CreateListFile("json", iniFiles)
 
 		fmt.Print("Успешно созданы файлы: ")
 		fmt.Println(jsonFiles)
 	}
+}
 
-	/*
+func CreateListFile(typeFile string, listFiles []string) []string {
 
-		/*
+	var f func(fileName string) string
 
-			// convert to JSON
-			var oneStaff jsonFile
-			var allStaffs []jsonFile
+	switch typeFile {
+	case "ini":
+		f = ConvertXmlToIni
+	case "json":
+		f = ConvertIniToJson
+	default:
+		{
+			Logs("")
+			os.Exit(1)
+		}
+	}
 
-			for i, value := range c.Cours {
-				oneStaff.student = value.Students[i].Name
-				oneStaff.Course = value.Fir
-				oneStaff.LastName = value.LastName
-				oneStaff.UserName = value.UserName
+	var files []string
+	for _, file := range listFiles {
+		fileName := f(file)
+		if fileName != "" {
+			files = append(files, fileName)
+		}
+	}
 
-				allStaffs = append(allStaffs, oneStaff)
-			}
+	if len(files) == 0 {
+		Logs("")
+		os.Exit(1)
+	}
 
-			jsonData, err := json.Marshal(allStaffs)
-
-			if err != nil {
-				fmt.Println(err)
-				os.Exit(1)
-			}
-
-			// sanity check - JSON level
-
-			fmt.Println(string(jsonData))
-
-			// now write to JSON file
-
-			jsonFile, err := os.Create("./Employees.json")
-
-			if err != nil {
-				fmt.Println(err)
-			}
-			defer jsonFile.Close()
-
-			jsonFile.Write(jsonData)
-			jsonFile.Close()
-	*/
+	return files
 }
 
 func ListXmlFile(Directory string) (listFiles []string) {
@@ -189,19 +166,67 @@ func ConvertIniToJson(iniFileName string) string {
 		return ""
 	}
 
+	// список названий секций
 	sectionsName := cfg.SectionStrings()
+	// ссылка на секции
 	section := cfg.Sections()
-	fmt.Print("Список секций: ")
-	fmt.Println(sectionsName)
 
-	for _, sectionName := range section {
-		keys := sectionName.Keys()
-		for _, value := range keys {
-			fmt.Println(value)
+	var allStudent []jsonFile
+
+	for i := 1; i < len(section); i++ {
+		oneStudent := jsonFile{}
+		//	da := Data{}
+		//var dat []Data
+		oneStudent.Student = sectionsName[i]
+		keysName := section[i].KeyStrings() // список названий ключей
+		keys := section[i].Keys()           // ссылка на ключи
+		//data := map[string]int{}
+		for j, value := range keys {
+			v := value.Value()           // получение значения ключа
+			chislo, _ := strconv.Atoi(v) // перевод строки в число
+			//da.Course = keysName[j]
+			//da.Mark = chislo
+			//dat = append(dat, da)
+			//data[keysName[j]] = chislo
+			oneStudent.Course = keysName[j]
+			oneStudent.Mark = chislo
 		}
+
+		//oneStudent.data = dat
+		allStudent = append(allStudent, oneStudent)
 	}
 
-	return ""
+	fmt.Print("Данные student")
+	fmt.Println(allStudent)
+
+	jsonData, err := json.Marshal(allStudent)
+
+	if err != nil {
+		Logs("")
+		return ""
+	}
+
+	// sanity check - JSON level
+	fmt.Print("Данные json: ")
+	fmt.Println(string(jsonData))
+
+	// now write to JSON file
+
+	// замена расширения ini на json
+	jsonFileName := strings.Replace(iniFileName, ".ini", ".json", 1)
+
+	jsonFile, err := os.Create(jsonFileName)
+
+	if err != nil {
+		Logs("")
+		return ""
+	}
+	defer jsonFile.Close()
+
+	jsonFile.Write(jsonData)
+	jsonFile.Close()
+
+	return jsonFileName
 }
 
 // запись ошибки в файл
