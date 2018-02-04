@@ -1,1 +1,16 @@
-[{"Student":"vasya","Course":"AI","Mark":5},{"Student":"masha","Course":"AI","Mark":2}]
+[
+{
+"Student": "vasya",
+"Course":"math",
+"Mark":"2",
+"Course":"AI",
+"Mark":"5",
+},
+{
+"Student": "masha",
+"Course":"math",
+"Mark":"5",
+"Course":"AI",
+"Mark":"2",
+}
+]

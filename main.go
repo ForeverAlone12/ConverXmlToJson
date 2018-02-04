@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"encoding/xml"
 	"fmt"
 	"io/ioutil"
@@ -33,16 +32,6 @@ type Courses struct {
 	Cours   []Course `xml:"course"`
 }
 
-type Data struct {
-	Course string
-	Mark   int
-}
-
-type jsonFile struct {
-	Student string
-	data    []Data
-}
-
 func main() {
 
 	// Считать путь к папке с файлами xml
@@ -66,6 +55,12 @@ func main() {
 	}
 }
 
+/*
+ * Создание списка файлов дл конвертации
+ * @param typeFile - тип создаваемого списка файлов
+ * @param listFiles - список файлов для конвертации
+ * @return - список преобразованных файлов
+ */
 func CreateListFile(typeFile string, listFiles []string) []string {
 
 	var f func(fileName string) string
@@ -98,6 +93,11 @@ func CreateListFile(typeFile string, listFiles []string) []string {
 	return files
 }
 
+/*
+ * Получение списка xml-файлов в папке
+ * @param Directory - путь к папке для проверки
+ * @return список имен файлов, если файлы есть, иначе - nil
+ */
 func ListXmlFile(Directory string) (listFiles []string) {
 
 	// считывание файлов из папки
@@ -122,9 +122,11 @@ func ListXmlFile(Directory string) (listFiles []string) {
 	return listFiles
 }
 
-// Перенесение информации из xml в ini
-// xmlFileName - имя xml-файла
-// возвращвет - имя ini-файла или пустую строку при ошибки считывания
+/*
+ *  Перенесение информации из xml в ini
+ * @param xmlFileName - имя xml-файла
+ * @return - имя ini-файла или пустую строку при ошибки считывания
+ */
 func ConvertXmlToIni(xmlFileName string) string {
 
 	// открытие xml-файла
@@ -159,6 +161,11 @@ func ConvertXmlToIni(xmlFileName string) string {
 	return iniFileName
 }
 
+/*
+ *  Перенесение информации из ini в json
+ * @param iniFileName - имя ini-файла
+ * @return - имя json-файла или пустую строку при ошибки считывания
+ */
 func ConvertIniToJson(iniFileName string) string {
 	cfg, err := ini2.Load(iniFileName)
 	if err != nil {
@@ -171,66 +178,47 @@ func ConvertIniToJson(iniFileName string) string {
 	// ссылка на секции
 	section := cfg.Sections()
 
-	var allStudent []jsonFile
-
-	for i := 1; i < len(section); i++ {
-		oneStudent := jsonFile{}
-		//	da := Data{}
-		//var dat []Data
-		oneStudent.Student = sectionsName[i]
-		keysName := section[i].KeyStrings() // список названий ключей
-		keys := section[i].Keys()           // ссылка на ключи
-		//data := map[string]int{}
-		for j, value := range keys {
-			v := value.Value()           // получение значения ключа
-			chislo, _ := strconv.Atoi(v) // перевод строки в число
-			//da.Course = keysName[j]
-			//da.Mark = chislo
-			//dat = append(dat, da)
-			//data[keysName[j]] = chislo
-			oneStudent.Course = keysName[j]
-			oneStudent.Mark = chislo
-		}
-
-		//oneStudent.data = dat
-		allStudent = append(allStudent, oneStudent)
-	}
-
-	fmt.Print("Данные student")
-	fmt.Println(allStudent)
-
-	jsonData, err := json.Marshal(allStudent)
-
-	if err != nil {
-		Logs("")
-		return ""
-	}
-
-	// sanity check - JSON level
-	fmt.Print("Данные json: ")
-	fmt.Println(string(jsonData))
-
-	// now write to JSON file
+	//var allStudent []jsonFile
 
 	// замена расширения ini на json
 	jsonFileName := strings.Replace(iniFileName, ".ini", ".json", 1)
-
-	jsonFile, err := os.Create(jsonFileName)
-
+	file, err := os.Create(jsonFileName)
 	if err != nil {
-		Logs("")
-		return ""
+		Logs("gbctw")
 	}
-	defer jsonFile.Close()
+	defer file.Close()
+	file.WriteString("[\n")
 
-	jsonFile.Write(jsonData)
-	jsonFile.Close()
+	for i := 1; i < len(section); i++ {
 
+		//oneStudent.Student = sectionsName[i]
+		file.WriteString("{\n\"Student\": " + "\"" + sectionsName[i] + "\",\n")
+		keysName := section[i].KeyStrings() // список названий ключей
+		keys := section[i].Keys()           // ссылка на ключи
+		//da := map[string]int{}
+		for j, value := range keys {
+			v := value.Value() // получение значения ключ
+			file.WriteString("\"Course\":" + "\"" + keysName[j] + "\",\n")
+			file.WriteString("\"Mark\":" + "\"" + v + "\",\n")
+		}
+		file.WriteString("}")
+
+		if i != len(section) {
+			file.WriteString(",\n")
+		} else {
+			file.WriteString("\n")
+		}
+	}
+
+	file.WriteString("]")
 	return jsonFileName
+
 }
 
-// запись ошибки в файл
-// @param error - описание ошибки
+/*
+ * Запись ошибки в файл
+ * @param error - описание ошибки
+ */
 func Logs(error string) {
 
 	// открыть файл для добавления записи
