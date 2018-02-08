@@ -178,8 +178,6 @@ func ConvertIniToJson(iniFileName string) string {
 	// ссылка на секции
 	section := cfg.Sections()
 
-	//var allStudent []jsonFile
-
 	// замена расширения ini на json
 	jsonFileName := strings.Replace(iniFileName, ".ini", ".json", 1)
 	file, err := os.Create(jsonFileName)
@@ -195,7 +193,7 @@ func ConvertIniToJson(iniFileName string) string {
 		file.WriteString("{\n\"Student\": " + "\"" + sectionsName[i] + "\",\n")
 		keysName := section[i].KeyStrings() // список названий ключей
 		keys := section[i].Keys()           // ссылка на ключи
-		//da := map[string]int{}
+
 		for j, value := range keys {
 			v := value.Value() // получение значения ключ
 			file.WriteString("\"Course\":" + "\"" + keysName[j] + "\",\n")
